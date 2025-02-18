@@ -30,6 +30,13 @@
       },
       "description": "Calculates the value of the copied latex"
     },
+    "simplify": {
+      "suggested_key": {
+        "default": "Ctrl+B",
+        "mac": "Command+B"
+      },
+      "description": "Calculates the value of the copied latex"
+    },
     "pasteLatex": {
       "suggested_key": {
         "default": "Ctrl+Shift+V",

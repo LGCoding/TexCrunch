@@ -80006,6 +80006,7 @@ function importLatex(value) {
 let elements = [
     { name: "frac", groups: ["{", "{"], output: "($0)/($1)" },
     { name: "\\^", groups: ["{"], output: "^($0)" },
+    { name: "_", groups: ["{"], output: "_$0" },
     { name: "sqrt", groups: ["[", "{"], output: "$1^(1/$0)" },
     { name: "sqrt", groups: ["{"], output: "sqrt($0)" },
     { name: "sin", groups: [], output: "sin" },
@@ -80060,9 +80061,9 @@ function doReplace(element, match) {
         string.substring(currentIndex));
 }
 function parse(latex) {
-    let output = latex.replace(/\s|\\\s/g, "");
-    output = latex.replace(/\^/g, "\\^");
-    output = latex.replace(/([0-9]),([0-9])/g, "$1$2");
+    let output = latex.replace(/\s|\\\s/g, " ");
+    output = output.replace(/([\^_])/g, "\\$1");
+    output = output.replace(/([0-9]),([0-9])/g, "$1$2");
     console.log(output);
     for (const i of elements) {
         const reg = RegExp("\\\\" + i.name, "m");
@@ -80081,14 +80082,14 @@ function parse(latex) {
             match = output.match(reg);
         }
     }
-    return mathjs__WEBPACK_IMPORTED_MODULE_1__.evaluate(output);
+    return output;
 }
 function setClipboard(value) {
     navigator.clipboard.writeText(value + "");
 }
 chrome.commands.onCommand.addListener(function (command, tab) {
     if (tab.id) {
-        if (command === "doMath") {
+        if (command === "doMath" || command === "simplify") {
             chrome.scripting
                 .executeScript({
                 target: { tabId: tab.id },
@@ -80096,14 +80097,26 @@ chrome.commands.onCommand.addListener(function (command, tab) {
             })
                 .then((injectionResults) => __awaiter(this, void 0, void 0, function* () {
                 if (typeof injectionResults[0].result === "string") {
+                    console.log(mathjs__WEBPACK_IMPORTED_MODULE_1__.simplify("x_(1)+x_(1)").toString());
                     const settings = yield (0,_util_utils__WEBPACK_IMPORTED_MODULE_0__.getSettings)();
-                    let value = parse(injectionResults[0].result);
-                    if (typeof value === "number") {
+                    let parsedValue = parse(injectionResults[0].result);
+                    let value;
+                    if (command === "doMath") {
+                        value = mathjs__WEBPACK_IMPORTED_MODULE_1__.evaluate(parsedValue);
                         value = mathjs__WEBPACK_IMPORTED_MODULE_2__.format(value, {
                             precision: settings.decimalPlaces,
                             notation: settings.format,
-                        });
+                        })
+                            .toString();
                     }
+                    else if (command === "simplify") {
+                        value = mathjs__WEBPACK_IMPORTED_MODULE_1__.simplify(parsedValue)
+                            .toTex()
+                            .replace(/_([a-zA-Z0-9]+)/g, "_{$1}")
+                            .replace(/\\_/g, "_");
+                    }
+                    if (typeof value == "string")
+                        value = value.replace(/([0-9])e\+?(-?[0-9]+)/, "$1\\times10^{$2}");
                     chrome.scripting.executeScript({
                         target: { tabId: tab.id },
                         func: setClipboard,

@@ -160,6 +160,7 @@ type element = {
 let elements: element[] = [
   { name: "frac", groups: ["{", "{"], output: "($0)/($1)" },
   { name: "\\^", groups: ["{"], output: "^($0)" },
+  { name: "_", groups: ["{"], output: "_$0" },
   { name: "sqrt", groups: ["[", "{"], output: "$1^(1/$0)" },
   { name: "sqrt", groups: ["{"], output: "sqrt($0)" },
   { name: "sin", groups: [], output: "sin" },
@@ -218,10 +219,10 @@ function doReplace(element: element, match: RegExpMatchArray): null | string {
   );
 }
 
-function parse(latex: string): unknown {
-  let output = latex.replace(/\s|\\\s/g, "");
-  output = latex.replace(/\^/g, "\\^");
-  output = latex.replace(/([0-9]),([0-9])/g, "$1$2");
+function parse(latex: string): string {
+  let output = latex.replace(/\s|\\\s/g, " ");
+  output = output.replace(/([\^_])/g, "\\$1");
+  output = output.replace(/([0-9]),([0-9])/g, "$1$2");
   console.log(output);
   for (const i of elements) {
     const reg = RegExp("\\\\" + i.name, "m");
@@ -240,7 +241,7 @@ function parse(latex: string): unknown {
       match = output.match(reg);
     }
   }
-  return mathjs.evaluate(output);
+  return output;
 }
 
 function setClipboard(value: unknown) {
@@ -249,7 +250,7 @@ function setClipboard(value: unknown) {
 
 chrome.commands.onCommand.addListener(function (command, tab) {
   if (tab.id) {
-    if (command === "doMath") {
+    if (command === "doMath" || command === "simplify") {
       chrome.scripting
         .executeScript({
           target: { tabId: tab.id },
@@ -257,14 +258,30 @@ chrome.commands.onCommand.addListener(function (command, tab) {
         })
         .then(async (injectionResults) => {
           if (typeof injectionResults[0].result === "string") {
+            console.log(mathjs.simplify("x_(1)+x_(1)").toString());
             const settings = await getSettings();
-            let value = parse(injectionResults[0].result);
-            if (typeof value === "number") {
-              value = mathjs.format(value, {
-                precision: settings.decimalPlaces,
-                notation: settings.format,
-              });
+            let parsedValue = parse(injectionResults[0].result);
+            let value: any;
+            if (command === "doMath") {
+              value = mathjs.evaluate(parsedValue);
+              value = mathjs
+                .format(value, {
+                  precision: settings.decimalPlaces,
+                  notation: settings.format,
+                })
+                .toString();
+            } else if (command === "simplify") {
+              value = mathjs
+                .simplify(parsedValue)
+                .toTex()
+                .replace(/_([a-zA-Z0-9]+)/g, "_{$1}")
+                .replace(/\\_/g, "_");
             }
+            if (typeof value == "string")
+              value = value.replace(
+                /([0-9])e\+?(-?[0-9]+)/,
+                "$1\\times10^{$2}"
+              );
 
             chrome.scripting.executeScript({
               target: { tabId: tab.id },
