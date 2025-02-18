@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+  </head>
+  <body>
+    Decimal Places: <input id="decimal" type="number" />
+    <fieldset>
+      <legend>Number format:</legend>
+
+      <div>
+        <input type="radio" id="auto" name="format" value="auto" />
+        <label for="auto">auto</label>
+      </div>
+
+      <div>
+        <input type="radio" id="scientific" name="format" value="exponential" />
+        <label for="scientific">scientific</label>
+      </div>
+
+      <div>
+        <input type="radio" id="fixed" name="format" value="fixed" />
+        <label for="fixed">fixed</label>
+      </div>
+      <div>
+        <input type="radio" id="bin" name="format" value="bin" />
+        <label for="bin">binary</label>
+      </div>
+      <div>
+        <input type="radio" id="oct" name="format" value="oct" />
+        <label for="oct">octal</label>
+      </div>
+      <div>
+        <input type="radio" id="hex" name="format" value="hex" />
+        <label for="hex">hexadecimal</label>
+      </div>
+    </fieldset>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+{"version":3,"file":"content.js","mappings":";;;;AAAA","sources":["webpack://empty-project/./src/content/index.ts"],"sourcesContent":["console.log(\"test\");\n"],"names":[],"sourceRoot":""}

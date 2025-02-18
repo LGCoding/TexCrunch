@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "TexCrunch",
+  "description": "Takes LaTex from Mathcha or latex program and outputs the value",
+  "version": "1.0",
+  "icons": {
+    "16": "icons/icon.png",
+    "32": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.png",
+      "32": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "permissions": ["tabs", "activeTab", "scripting", "storage"],
+  "commands": {
+    "doMath": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "mac": "Command+M"
+      },
+      "description": "Calculates the value of the copied latex"
+    },
+    "pasteLatex": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "Pastes latex into the document"
+    }
+  }
+}
