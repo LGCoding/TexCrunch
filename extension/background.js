@@ -80021,6 +80021,7 @@ let elements = [
     { name: "left\\(", groups: [], output: "(" },
     { name: "right\\)", groups: [], output: ")" },
     { name: "mathcal", groups: ["{"], output: "$0" },
+    { name: "binom", groups: ["{", "{"], output: "combinations($0,$1)" },
 ];
 function doReplace(element, match) {
     const len = match[0].length;

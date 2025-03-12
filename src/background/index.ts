@@ -175,6 +175,7 @@ let elements: element[] = [
   { name: "left\\(", groups: [], output: "(" },
   { name: "right\\)", groups: [], output: ")" },
   { name: "mathcal", groups: ["{"], output: "$0" },
+  { name: "binom", groups: ["{", "{"], output: "combinations($0,$1)" },
 ];
 
 function doReplace(element: element, match: RegExpMatchArray): null | string {
