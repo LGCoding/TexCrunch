@@ -157,11 +157,11 @@ type element = {
   output: string;
 };
 
-let elements: element[] = [
-  { name: "frac", groups: ["{", "{"], output: "($0)/($1)" },
+const elements: element[] = [
+  { name: "frac", groups: ["{", "{"], output: "(($0)/($1))" },
   { name: "\\^", groups: ["{"], output: "^($0)" },
   { name: "_", groups: ["{"], output: "_$0" },
-  { name: "sqrt", groups: ["[", "{"], output: "$1^(1/$0)" },
+  { name: "sqrt", groups: ["[", "{"], output: "($1)^(1/$0)" },
   { name: "sqrt", groups: ["{"], output: "sqrt($0)" },
   { name: "sin", groups: [], output: "sin" },
   { name: "cos", groups: [], output: "cos" },
@@ -170,11 +170,15 @@ let elements: element[] = [
   { name: "sec", groups: [], output: "sec" },
   { name: "cot", groups: [], output: "cot" },
   { name: "times", groups: [], output: "*" },
+  { name: " ", groups: [], output: " " },
   { name: "div", groups: [], output: "/" },
   { name: "pi", groups: [], output: "pi" },
   { name: "left\\(", groups: [], output: "(" },
   { name: "right\\)", groups: [], output: ")" },
   { name: "mathcal", groups: ["{"], output: "$0" },
+  { name: "mathbb", groups: ["{"], output: "$0" },
+  { name: "begin{array}", groups: ["{"], output: "" },
+  { name: "end{array}", groups: [], output: "" },
   { name: "binom", groups: ["{", "{"], output: "combinations($0,$1)" },
 ];
 
@@ -190,7 +194,7 @@ function doReplace(element: element, match: RegExpMatchArray): null | string {
     const c = o === "[" ? "]" : "}";
     console.log(string[currentIndex]);
     if (string[currentIndex] !== o) {
-      break;
+      return string;
     }
     currentIndex++;
     let num = 1;
@@ -219,9 +223,122 @@ function doReplace(element: element, match: RegExpMatchArray): null | string {
     string.substring(currentIndex)
   );
 }
+type matrix = {
+  type: string;
+  wrapper: string;
+};
+const matrixes: matrix[] = [
+  {
+    type: "matrix",
+    wrapper: "matrix($0)",
+  },
+  {
+    type: "bmatrix",
+    wrapper: "matrix($0)",
+  },
+  {
+    type: "Bmatrix",
+    wrapper: "matrix($0)",
+  },
+  {
+    type: "pmatrix",
+    wrapper: "matrix($0)",
+  },
+  {
+    type: "vmatrix",
+    wrapper: "det(matrix($0))",
+  },
+  {
+    type: "Vmatrix",
+    wrapper: "det(matrix($0))",
+  },
+];
+
+function matrixStuff(string: string): string {
+  for (const i of matrixes) {
+    const reg = RegExp("\\\\begin{" + i.type + "}", "m");
+    let match = string.match(reg);
+    const regEnd = RegExp("\\\\end{" + i.type + "}", "m");
+    let matchEnd = string.match(regEnd);
+    console.log(match);
+    let failsafe = 0;
+    while (match !== null && failsafe !== 100) {
+      failsafe++;
+      let matrix: unknown[][] = [];
+      let currentA: unknown[] = [];
+      let currentN = "";
+      let pos = match.index + match[0].length;
+      console.log(match, matchEnd);
+      for (; pos < matchEnd.index; pos++) {
+        if (string[pos] === "&") {
+          let number = Number(currentN);
+          if (Number.isNaN(number)) {
+            currentA.push(currentN);
+          } else {
+            currentA.push(number);
+          }
+          currentN = "";
+        } else if (string[pos] === "\\" && string[pos + 1] === "\\") {
+          pos++;
+          let number = Number(currentN);
+          if (Number.isNaN(number)) {
+            currentA.push(currentN);
+          } else {
+            currentA.push(number);
+          }
+          currentN = "";
+          matrix.push(currentA);
+          currentA = [];
+        } else {
+          currentN += string[pos];
+        }
+      }
+      let number = Number(currentN);
+      if (Number.isNaN(number)) {
+        currentA.push(currentN);
+      } else {
+        currentA.push(number);
+      }
+      currentN = "";
+      matrix.push(currentA);
+      currentA = [];
+      let result = "[";
+      for (let i of matrix) {
+        result += "[";
+        for (let j of i) {
+          if (typeof j === "number") {
+            result += j + ",";
+          } else if (typeof j === "string") {
+            result += j + ",";
+          }
+        }
+        result += "],";
+      }
+      result += "]";
+      let regReplace = RegExp(
+        "\\\\begin{" + i.type + "}((.|\n)+?)\\\\end{" + i.type + "}",
+        "m"
+      );
+      console.log(regReplace);
+      string = string.replace(regReplace, i.wrapper.replace("$0", result));
+
+      // const temp = doReplace(i, match);
+      // if (temp === null) {
+      //   console.error("There was an error parsing the latex");
+      //   return;
+      // }
+      // string = temp;
+      // console.log(temp);
+      console.log(string);
+      match = string.match(reg);
+      matchEnd = string.match(regEnd);
+    }
+  }
+  return string;
+}
 
 function parse(latex: string): string {
-  let output = latex.replace(/\s|\\\s/g, " ");
+  let output = latex; //latex.replace(/\s|\\\s/g, " ");
   output = output.replace(/([\^_])/g, "\\$1");
   output = output.replace(/([0-9]),([0-9])/g, "$1$2");
   console.log(output);
@@ -230,7 +347,7 @@ function parse(latex: string): string {
     let match = output.match(reg);
     console.log(match);
     let failsafe = 0;
-    while (match !== null && failsafe !== 10) {
+    while (match !== null && failsafe !== 100) {
       failsafe++;
       const temp = doReplace(i, match);
       if (temp === null) {
@@ -242,6 +359,7 @@ function parse(latex: string): string {
       match = output.match(reg);
     }
   }
+  output = matrixStuff(output);
   return output;
 }
 
@@ -259,9 +377,9 @@ chrome.commands.onCommand.addListener(function (command, tab) {
         })
         .then(async (injectionResults) => {
           if (typeof injectionResults[0].result === "string") {
-            console.log(mathjs.simplify("x_(1)+x_(1)").toString());
             const settings = await getSettings();
             let parsedValue = parse(injectionResults[0].result);
+            console.log("test", parsedValue);
             let value: any;
             if (command === "doMath") {
               value = mathjs.evaluate(parsedValue);
